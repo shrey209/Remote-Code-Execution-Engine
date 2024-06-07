@@ -1,0 +1,24 @@
+post req on ->  http://127.0.0.1:8001/code
+
+{
+  "code": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nvoid printFibonacci(int n) {\n    int t1 = 0, t2 = 1, nextTerm = 0;\n\n    for (int i = 1; i <= n; ++i) {\n        if(i == 1) {\n            cout << t1 << \" \";\n            continue;\n        }\n        if(i == 2) {\n            cout << t2 << \" \";\n            continue;\n        }\n        nextTerm = t1 + t2;\n        t1 = t2;\n        t2 = nextTerm;\n\n        cout << nextTerm << \" \";\n    }\n    cout << endl;\n}\n\nint main() {\n    int num_cases;\n    cin >> num_cases;\n    vector<int> cases(num_cases);\n\n    for(int i = 0; i < num_cases; ++i) {\n        cin >> cases[i];\n    }\n\n    for(int i = 0; i < num_cases; ++i) {\n        printFibonacci(cases[i]);\n    }\n\n    return 0;\n}",
+  "input_data": "3\n5\n10\n15",
+   "lang":"cpp"
+}
+
+
+
+{
+  "code": "#include <iostream>\nusing namespace std;\nint main() {\n    int num1, num2;\n    cin >> num1 >> num2;\n    cout << num1 + num2 << endl;\n    return 0;\n}",
+  "input_data": "5 3",
+  "lang":"cpp"
+}
+
+
+
+{
+  
+    "code": "num1, num2 = map(int, input().split())\nprint(num1 + num2+num1)",
+    "input_data": "5 3",
+    "lang": "python"
+  }
