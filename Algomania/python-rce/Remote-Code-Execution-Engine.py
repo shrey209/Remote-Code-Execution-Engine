@@ -64,7 +64,3 @@ async def code_runner(code_input: CodeInput):
 
     return response_dto
 
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8002)

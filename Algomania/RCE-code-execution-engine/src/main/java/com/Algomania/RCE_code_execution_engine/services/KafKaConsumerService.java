@@ -3,6 +3,7 @@ package com.Algomania.RCE_code_execution_engine.services;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -22,6 +23,9 @@ import java.io.IOException;
 public class KafKaConsumerService {
     private final Logger logger = LoggerFactory.getLogger(KafKaConsumerService.class);
 
+	@Value(value = "${urlpart}")
+     String urlpart;
+    
     @Autowired
     private MyWebSocketHandler myWebSocketHandler;
 
@@ -37,7 +41,7 @@ public class KafKaConsumerService {
 
         CodeInput codeInput = new CodeInput(websocketdto.getCode(), websocketdto.getInput_data(), websocketdto.getLang());
 
-        String url = "http://localhost:8001/code";
+        String url = "http://43.204.197.186:8080/code";
         String response = restTemplate.postForObject(url, codeInput, String.class);
 
         WebSocketSession session = myWebSocketHandler.getSession(websocketdto.getUuid());
