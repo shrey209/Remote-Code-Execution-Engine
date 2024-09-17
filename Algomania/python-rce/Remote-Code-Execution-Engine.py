@@ -1,13 +1,22 @@
 import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uuid
 
 from CodeRunner_cpp_c import create_and_run_cpp_container
 from CodeRunner_python import create_and_run_python_container
 
-
 app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"], 
+)
 
 class CodeInput(BaseModel):
     code: str
@@ -28,20 +37,15 @@ async def code_runner(code_input: CodeInput):
     code_filename = f"{random_uuid}.{code_extension}"
     input_filename = f"{random_uuid}.txt"
    
-    
     code_file_path = os.path.join(base_dir, code_filename)
     input_file_path = os.path.join(base_dir, input_filename)
 
-
- 
     with open(code_file_path, 'w') as code_file:   
         code_file.write(code_input.code)
 
-   
     with open(input_file_path, 'w') as input_file:    
         input_file.write(code_input.input_data)
 
-  
     if code_input.lang in ["cpp"]:
         output, error = create_and_run_cpp_container(code_file_path, input_file_path)
     elif code_input.lang == "python":
@@ -49,18 +53,14 @@ async def code_runner(code_input: CodeInput):
     else:
         return ResponseDTO(isError=True, response="Unsupported language specified")
 
-   
     is_error = bool(error.strip()) 
-
 
     response_dto = ResponseDTO(
         isError=is_error,
         response=error if is_error else output
     )
 
-  
     os.remove(code_file_path)
     os.remove(input_file_path)
 
     return response_dto
-
