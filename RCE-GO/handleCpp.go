@@ -7,8 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/google/uuid"
@@ -108,14 +106,8 @@ func cppHandler(code string, input string) (string, error) {
 
 	// If stderr is not empty, return it as an error
 	if len(stderr) > 0 {
-		return "", fmt.Errorf("execution error: %s", cleanOutput(stderr))
+		return "", fmt.Errorf("execution error: %s", stderr)
 	}
 
-	return cleanOutput(stdout), nil
-}
-
-func cleanOutput(log string) string {
-
-	re := regexp.MustCompile(`[\x00-\x1F\x7F]`)
-	return strings.TrimSpace(re.ReplaceAllString(log, ""))
+	return stdout, nil
 }

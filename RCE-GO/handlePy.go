@@ -101,8 +101,8 @@ func pythonHandler(code string, input string) (string, error) {
 	}()
 
 	if len(stderr) > 0 {
-		return "", fmt.Errorf("execution error: %s", cleanOutput(stderr))
+		return "", fmt.Errorf("execution error: %s", stderr)
 	}
 
-	return cleanOutput(stdout), nil
+	return stdout, nil
 }
