@@ -18,12 +18,10 @@ func pythonHandler(code string, input string) (string, error) {
 	id := uuid.New().String()
 	testFolder := filepath.Join(basePath, "test")
 
-	// Ensure test directory exists
 	if err := os.MkdirAll(testFolder, os.ModePerm); err != nil {
 		return "", fmt.Errorf("failed to create test directory: %w", err)
 	}
 
-	// Create file paths
 	codeFile, err := filepath.Abs(filepath.Join(testFolder, id+"_code.py"))
 	if err != nil {
 		return "", fmt.Errorf("failed to get absolute path for code file: %w", err)
@@ -34,7 +32,6 @@ func pythonHandler(code string, input string) (string, error) {
 		return "", fmt.Errorf("failed to get absolute path for input file: %w", err)
 	}
 
-	// Write code and input to files
 	if err := os.WriteFile(codeFile, []byte(code), 0644); err != nil {
 		return "", fmt.Errorf("failed to write code file: %w", err)
 	}
@@ -45,7 +42,6 @@ func pythonHandler(code string, input string) (string, error) {
 	containerName := "container_" + id
 	runCmd := "timeout -s KILL 1 python3 script.py < input.txt"
 
-	// Create and start Docker container
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image:      "python:latest",
 		Cmd:        []string{"/bin/sh", "-c", runCmd},
@@ -56,8 +52,8 @@ func pythonHandler(code string, input string) (string, error) {
 			inputFile + ":/usr/src/app/input.txt",
 		},
 		Resources: container.Resources{
-			Memory:   256 * 1024 * 1024, // 256MB RAM
-			NanoCPUs: 500000000,         // 0.5 CPU
+			Memory:   256 * 1024 * 1024,
+			NanoCPUs: 500000000,
 		},
 	}, nil, nil, containerName)
 	if err != nil {
@@ -68,7 +64,6 @@ func pythonHandler(code string, input string) (string, error) {
 		return "", fmt.Errorf("failed to start container: %w", err)
 	}
 
-	// Wait for container to stop
 	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	select {
 	case <-statusCh:
@@ -76,28 +71,28 @@ func pythonHandler(code string, input string) (string, error) {
 		return "", fmt.Errorf("error waiting for container: %w", err)
 	}
 
-	// Fetch logs
-	logs, err := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
+	//error  stderr logs
+	stderrLogs, err := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStderr: true})
 	if err != nil {
-		return "", fmt.Errorf("failed to get container logs: %w", err)
+		return "", fmt.Errorf("failed to get stderr logs: %w", err)
 	}
+	var stderrBuf bytes.Buffer
+	_, _ = io.Copy(&stderrBuf, stderrLogs)
+	stderr := stderrBuf.String()
 
-	var outputBuf bytes.Buffer
-	logData, err := io.ReadAll(logs)
+	// Read stdout logs
+	stdoutLogs, err := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true})
 	if err != nil {
-		return "", fmt.Errorf("failed to read logs: %w", err)
+		return "", fmt.Errorf("failed to get stdout logs: %w", err)
 	}
+	var stdoutBuf bytes.Buffer
+	_, _ = io.Copy(&stdoutBuf, stdoutLogs)
+	stdout := stdoutBuf.String()
 
-	// Docker log stream format: first byte indicates stream (1=stdout, 2=stderr), next 7 bytes are message length
-	if len(logData) > 8 {
-		logData = logData[8:] // Remove first 8 bytes
-	}
-
-	outputBuf.Write(logData)
-
+	// Cleanup container and files
 	go func() {
-		defer os.Remove(codeFile)  // Delete the code file
-		defer os.Remove(inputFile) // Delete the input file
+		defer os.Remove(codeFile)
+		defer os.Remove(inputFile)
 
 		err := cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true})
 		if err != nil {
@@ -105,5 +100,9 @@ func pythonHandler(code string, input string) (string, error) {
 		}
 	}()
 
-	return outputBuf.String(), nil
+	if len(stderr) > 0 {
+		return "", fmt.Errorf("execution error: %s", cleanOutput(stderr))
+	}
+
+	return cleanOutput(stdout), nil
 }

@@ -77,23 +77,25 @@ func cppHandler(code string, input string) (string, error) {
 		return "", fmt.Errorf("error waiting for container: %w", err)
 	}
 
-	logs, err := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
+	//error  stderr logs
+	stderrLogs, err := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStderr: true})
 	if err != nil {
-		return "", fmt.Errorf("failed to get container logs: %w", err)
+		return "", fmt.Errorf("failed to get stderr logs: %w", err)
 	}
+	var stderrBuf bytes.Buffer
+	_, _ = io.Copy(&stderrBuf, stderrLogs)
+	stderr := stderrBuf.String()
 
-	var outputBuf bytes.Buffer
-	logData, err := io.ReadAll(logs)
+	// Read stdout logs
+	stdoutLogs, err := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true})
 	if err != nil {
-		return "", fmt.Errorf("failed to read logs: %w", err)
+		return "", fmt.Errorf("failed to get stdout logs: %w", err)
 	}
+	var stdoutBuf bytes.Buffer
+	_, _ = io.Copy(&stdoutBuf, stdoutLogs)
+	stdout := stdoutBuf.String()
 
-	utf8Output := string(logData)
-
-	outputBuf.WriteString(utf8Output)
-
-	out := cleanOutput(outputBuf.String())
-
+	// Cleanup container and files
 	go func() {
 		defer os.Remove(codeFile)
 		defer os.Remove(inputFile)
@@ -104,12 +106,12 @@ func cppHandler(code string, input string) (string, error) {
 		}
 	}()
 
-	err = cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true})
-	if err != nil {
-		return "", fmt.Errorf("failed to remove container: %w", err)
+	// If stderr is not empty, return it as an error
+	if len(stderr) > 0 {
+		return "", fmt.Errorf("execution error: %s", cleanOutput(stderr))
 	}
 
-	return out, nil
+	return cleanOutput(stdout), nil
 }
 
 func cleanOutput(log string) string {
