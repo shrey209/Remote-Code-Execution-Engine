@@ -29,19 +29,20 @@ const Editor = () => {
     setLoading(true); 
 
     try {
-      const response = await fetch('http://4.240.110.135:8080/code', { 
+      const response = await fetch('http://20.197.20.39:8080/parse', { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           code: code,
-          input_data: input,
-          lang: lang
-        }),
+          lang: lang,
+          input: input,
+        })
       });
 
       const result = await response.json();
+      console.log(result)
 
       if (result.isError) {
         setError(true); 
