@@ -32,7 +32,7 @@ func main() {
 
 	r.POST("/parse", parseRequest)
 
-	if err := r.Run(":80"); err != nil {
+	if err := r.Run(":8080"); err != nil {
 		fmt.Println("Error starting server:", err)
 	}
 }
